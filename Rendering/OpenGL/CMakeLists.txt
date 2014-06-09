@@ -308,6 +308,23 @@ if(VTK_USE_X)
     message(FATAL_ERROR "X11_Xt_LIB could not be found. Required for VTK X lib.")
   endif()
   include_directories(${X11_INCLUDE_DIR} ${X11_Xt_INCLUDE_PATH})
+  # Use the OpenGL libraries provided with X11 for APPLE
+  if(APPLE)
+    find_library(XOPENGL_gl_LIBRARY
+      NAMES OpenGL GL
+      PATHS ${X11_LIBRARY_DIR}
+      NO_DEFAULT_PATH)
+    SET(OPENGL_gl_LIBRARY ${XOPENGL_gl_LIBRARY})
+    find_library(XOPENGL_glu_LIBRARY
+      NAMES GLU
+      PATHS ${X11_LIBRARY_DIR}
+      NO_DEFAULT_PATH)
+    SET(OPENGL_glu_LIBRARY ${XOPENGL_glu_LIBRARY})
+    find_path(XOPENGL_INCLUDE_DIR GL/gl.h
+      PATHS ${X11_INCLUDE_DIR} ${X11_LIBRARY_DIR}/../include
+      NO_DEFAULT_PATH)
+    SET(OPENGL_INCLUDE_DIR ${XOPENGL_INCLUDE_DIR})
+  endif(APPLE)
   # Add some custom overrides
   list(APPEND vtk_module_overrides "vtkRenderWindowInteractor")
   set(vtk_module_vtkRenderWindowInteractor_override "vtkXRenderWindowInteractor")
