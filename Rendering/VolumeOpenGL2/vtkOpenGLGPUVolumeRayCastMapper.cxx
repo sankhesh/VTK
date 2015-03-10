@@ -221,7 +221,7 @@ public:
                             vtkImageData* input);
 
   // Update cropping params to shader
-  void UpdateCropping(vtkRenderer* ren, vtkVolume* vol);
+  void UpdateCropping(vtkRenderer* ren, vtkVolume* vol, double* planes);
 
   // Update clipping params to shader
   void UpdateClipping(vtkRenderer* ren, vtkVolume* vol);
@@ -1531,69 +1531,37 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateVolumeGeometry(
 
 //----------------------------------------------------------------------------
 void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateCropping(
-  vtkRenderer* vtkNotUsed(ren), vtkVolume* vtkNotUsed(vol))
+  vtkRenderer* vtkNotUsed(ren), vtkVolume* vtkNotUsed(vol),
+  double * clippedCroppingRegionPlanes)
 {
-  if (this->Parent->GetCropping())
+  int cropFlags = this->Parent->GetCroppingRegionFlags();
+
+  float cropPlanes[6] = { static_cast<float>(clippedCroppingRegionPlanes[0]),
+                          static_cast<float>(clippedCroppingRegionPlanes[1]),
+                          static_cast<float>(clippedCroppingRegionPlanes[2]),
+                          static_cast<float>(clippedCroppingRegionPlanes[3]),
+                          static_cast<float>(clippedCroppingRegionPlanes[4]),
+                          static_cast<float>(clippedCroppingRegionPlanes[5]) };
+
+  this->ShaderProgram->SetUniform1fv("cropping_planes", 6, cropPlanes);
+  const int numberOfRegions = 32;
+  int cropFlagsArray[numberOfRegions];
+  cropFlagsArray[0] = 0;
+  int i = 1;
+  while(cropFlags && i < 32)
     {
-    int cropFlags = this->Parent->GetCroppingRegionFlags();
-    double croppingRegionPlanes[6];
-    this->Parent->GetCroppingRegionPlanes(croppingRegionPlanes);
-
-    // Clamp it
-    croppingRegionPlanes[0] = croppingRegionPlanes[0] < this->LoadedBounds[0] ?
-                              this->LoadedBounds[0] : croppingRegionPlanes[0];
-    croppingRegionPlanes[0] = croppingRegionPlanes[0] > this->LoadedBounds[1] ?
-                              this->LoadedBounds[1] : croppingRegionPlanes[0];
-    croppingRegionPlanes[1] = croppingRegionPlanes[1] < this->LoadedBounds[0] ?
-                              this->LoadedBounds[0] : croppingRegionPlanes[1];
-    croppingRegionPlanes[1] = croppingRegionPlanes[1] > this->LoadedBounds[1] ?
-                              this->LoadedBounds[1] : croppingRegionPlanes[1];
-
-    croppingRegionPlanes[2] = croppingRegionPlanes[2] < this->LoadedBounds[2] ?
-                              this->LoadedBounds[2] : croppingRegionPlanes[2];
-    croppingRegionPlanes[2] = croppingRegionPlanes[2] > this->LoadedBounds[3] ?
-                              this->LoadedBounds[3] : croppingRegionPlanes[2];
-    croppingRegionPlanes[3] = croppingRegionPlanes[3] < this->LoadedBounds[2] ?
-                              this->LoadedBounds[2] : croppingRegionPlanes[3];
-    croppingRegionPlanes[3] = croppingRegionPlanes[3] > this->LoadedBounds[3] ?
-                              this->LoadedBounds[3] : croppingRegionPlanes[3];
-
-    croppingRegionPlanes[4] = croppingRegionPlanes[4] < this->LoadedBounds[4] ?
-                              this->LoadedBounds[4] : croppingRegionPlanes[4];
-    croppingRegionPlanes[4] = croppingRegionPlanes[4] > this->LoadedBounds[5] ?
-                              this->LoadedBounds[5] : croppingRegionPlanes[4];
-    croppingRegionPlanes[5] = croppingRegionPlanes[5] < this->LoadedBounds[4] ?
-                              this->LoadedBounds[4] : croppingRegionPlanes[5];
-    croppingRegionPlanes[5] = croppingRegionPlanes[5] > this->LoadedBounds[5] ?
-                              this->LoadedBounds[5] : croppingRegionPlanes[5];
-
-    float cropPlanes[6] = { static_cast<float>(croppingRegionPlanes[0]),
-                            static_cast<float>(croppingRegionPlanes[1]),
-                            static_cast<float>(croppingRegionPlanes[2]),
-                            static_cast<float>(croppingRegionPlanes[3]),
-                            static_cast<float>(croppingRegionPlanes[4]),
-                            static_cast<float>(croppingRegionPlanes[5]) };
-
-    this->ShaderProgram->SetUniform1fv("cropping_planes", 6, cropPlanes);
-    const int numberOfRegions = 32;
-    int cropFlagsArray[numberOfRegions];
-    cropFlagsArray[0] = 0;
-    int i = 1;
-    while(cropFlags && i < 32)
-      {
-      cropFlagsArray[i] = cropFlags & 1;
-      cropFlags = cropFlags >> 1;
-      ++i;
-      }
-    for (; i < 32; ++i)
-      {
-      cropFlagsArray[i] = 0;
-      }
-
-    this->ShaderProgram->SetUniform1iv("cropping_flags",
-                                       numberOfRegions,
-                                       cropFlagsArray);
+    cropFlagsArray[i] = cropFlags & 1;
+    cropFlags = cropFlags >> 1;
+    ++i;
     }
+  for (; i < 32; ++i)
+    {
+    cropFlagsArray[i] = 0;
+    }
+
+  this->ShaderProgram->SetUniform1iv("cropping_flags",
+                                     numberOfRegions,
+                                     cropFlagsArray);
 }
 
 //----------------------------------------------------------------------------
@@ -2668,7 +2636,11 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren,
   this->Impl->ShaderProgram->SetUniform2fv("in_inverseWindowSize", 1, &fvalue2);
 
   // Updating cropping if enabled
-  this->Impl->UpdateCropping(ren, vol);
+  if (this->Cropping)
+    {
+    this->ClipCroppingRegionPlanes();
+    this->Impl->UpdateCropping(ren, vol, this->ClippedCroppingRegionPlanes);
+    }
 
   // Updating clipping if enabled
   this->Impl->UpdateClipping(ren, vol);
