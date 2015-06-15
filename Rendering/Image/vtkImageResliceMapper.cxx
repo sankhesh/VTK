@@ -572,6 +572,7 @@ void vtkImageResliceMapper::UpdateResliceMatrix(
   if (this->InternalResampleToScreenPixels ||
       !propMatrixIsOrthonormal)
     {
+    std::cout << "Updating slice world matrix : InternalResampleToScreenPixels " << this->InternalResampleToScreenPixels << " PropMatrixIsOrth " << propMatrixIsOrthonormal << std::endl;
     this->UpdateSliceToWorldMatrix(ren->GetActiveCamera());
     vtkMatrix4x4::Multiply4x4(
       this->WorldToDataMatrix, this->SliceToWorldMatrix, this->ResliceMatrix);
@@ -745,6 +746,7 @@ void vtkImageResliceMapper::UpdateResliceInformation(vtkRenderer *ren)
   // Get the view matrix
   vtkCamera *camera = ren->GetActiveCamera();
   vtkMatrix4x4 *viewMatrix = camera->GetViewTransformMatrix();
+  viewMatrix->PrintSelf(std::cout, vtkIndent());
 
   // Get slice plane in world coords by passing null as the matrix
   double plane[4];
@@ -771,6 +773,8 @@ void vtkImageResliceMapper::UpdateResliceInformation(vtkRenderer *ren)
     double aspect = ren->GetTiledAspectRatio();
     vtkMatrix4x4 *projMatrix = camera->GetProjectionTransformMatrix(
                                  aspect, 0, 1);
+    std::cout << "Inside reslice: " << std::endl;
+    projMatrix->PrintSelf(std::cout, vtkIndent());
 
     // Compute other useful matrices
     double worldToView[16];

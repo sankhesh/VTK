@@ -40,10 +40,12 @@ public:
   // Description:
   // Set the view transform matrix
   void SetViewTransformMatrix(const double elements[16]);
+  void SetViewTransformMatrix(vtkMatrix4x4* m);
 
   // Description:
   // Set the projection matrix
   void SetProjectionTransformMatrix(const double elements[16]);
+  void SetProjectionTransformMatrix(vtkMatrix4x4* m);
 
 protected:
   vtkExternalOpenGLCamera();

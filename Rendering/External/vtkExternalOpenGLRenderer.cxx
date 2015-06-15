@@ -57,11 +57,33 @@ void vtkExternalOpenGLRenderer::Render(void)
   glGetDoublev(GL_MODELVIEW_MATRIX,mv);
   glGetDoublev(GL_PROJECTION_MATRIX,p);
 
+
+  std::cout << "Proj matrix: " << std::endl;
+//  for (unsigned int i = 0; i < 4; ++i)
+//    {
+//    for (unsigned int j = 0; j < 4; ++j)
+//      {
+//      std::cout << mv[i*4+j] << " ";
+//      }
+//    std::cout << std::endl;
+//    }
+//  std::cout << std::endl;
+
   vtkExternalOpenGLCamera* camera = vtkExternalOpenGLCamera::SafeDownCast(
     this->GetActiveCameraAndResetIfCreated());
 
+  vtkMatrix4x4* pm = vtkMatrix4x4::New();
+  pm->DeepCopy(p);
   camera->SetProjectionTransformMatrix(p);
+  pm->PrintSelf(std::cout, vtkIndent());
+  pm->Delete();
+
+  vtkMatrix4x4* mvm = vtkMatrix4x4::New();
+  mvm->DeepCopy(mv);
   camera->SetViewTransformMatrix(mv);
+  std::cout << "View matrix: " << std::endl;
+  mvm->PrintSelf(std::cout, vtkIndent());
+  mvm->Delete();
 
   vtkMatrix4x4* matrix = vtkMatrix4x4::New();
   matrix->DeepCopy(mv);
