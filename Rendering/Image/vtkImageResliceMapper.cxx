@@ -33,6 +33,7 @@
 #include "vtkImageResliceToColors.h"
 #include "vtkAbstractImageInterpolator.h"
 #include "vtkObjectFactory.h"
+#include "vtkgl.h"
 
 // A tolerance to compensate for roundoff errors
 #define VTK_RESLICE_MAPPER_VOXEL_TOL 7.62939453125e-06
@@ -141,6 +142,7 @@ void vtkImageResliceMapper::ReleaseGraphicsResources(vtkWindow *win)
 //----------------------------------------------------------------------------
 void vtkImageResliceMapper::Render(vtkRenderer *ren, vtkImageSlice *prop)
 {
+  //glClear(GL_DEPTH_BUFFER_BIT);
   if (this->ResliceNeedUpdate)
     {
     this->ImageReslice->SetInputConnection(
@@ -373,6 +375,8 @@ int vtkImageResliceMapper::ProcessRequest(
 
       // set the matrices
       this->UpdateResliceMatrix(ren, prop);
+      std::cout << std::endl << "Reslice Matrix: " << std::endl;
+      this->ResliceMatrix->PrintSelf(std::cout, vtkIndent());
 
       // update the coords for the polygon to be textured
       this->UpdatePolygonCoords(ren);

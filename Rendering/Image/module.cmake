@@ -5,6 +5,7 @@ vtk_module(vtkRenderingImage
   DEPENDS
     vtkImagingCore
     vtkRenderingCore
+    vtkRenderingOpenGL
   TEST_DEPENDS
     vtkTestingCore
     vtkTestingRendering
